@@ -37,6 +37,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
     final newPost = Post(
       id: '',
+      authorId: FirebaseAuth.instance.currentUser?.uid ?? '',
       authorName: actualName,
       authorRole: actualRole,
       timeStamp: DateTime.now(),

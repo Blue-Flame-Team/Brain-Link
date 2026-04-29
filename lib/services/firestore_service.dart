@@ -107,6 +107,41 @@ class FirestoreService {
     }
   }
 
+  Future<void> deletePost(String postId) async {
+    await _db.collection('posts').doc(postId).delete();
+  }
+
+  Future<void> addNotification({
+    required String userId,
+    required String title,
+    required String body,
+    String type = 'reminder',
+  }) async {
+    await _db.collection('notifications').add({
+      'userId': userId,
+      'title': title,
+      'body': body,
+      'type': type,
+      'createdAt': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getNotifications(String userId) {
+    return _db
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+  }
+
+  Future<void> incrementSessionParticipants(String sessionId) async {
+    await _db.collection('sessions').doc(sessionId).update({
+      'participantsCount': FieldValue.increment(1),
+    });
+  }
+
   Stream<List<ChatMessage>> getComments(String postId) {
     return _db
         .collection('posts')

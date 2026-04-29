@@ -49,6 +49,7 @@ class Session {
 
 class Post {
   final String id;
+  final String authorId;
   final String authorName;
   final String authorRole;
   final DateTime timeStamp;
@@ -61,6 +62,7 @@ class Post {
 
   Post({
     required this.id,
+    this.authorId = '',
     required this.authorName,
     required this.authorRole,
     required this.timeStamp,
@@ -75,6 +77,7 @@ class Post {
   factory Post.fromMap(Map<String, dynamic> data, String id) {
     return Post(
       id: id,
+      authorId: data['authorId'] ?? '',
       authorName: data['authorName'] ?? '',
       authorRole: data['authorRole'] ?? '',
       timeStamp: (data['timeStamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -89,6 +92,7 @@ class Post {
 
   Map<String, dynamic> toMap() {
     return {
+      'authorId': authorId,
       'authorName': authorName,
       'authorRole': authorRole,
       'timeStamp': timeStamp,

@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
-import 'package:intl/intl.dart' as intl;
 import 'package:brain_link/screens/home_features/comments_sheet.dart';
 
 String _formatTimeAgo(DateTime time) {
@@ -420,10 +419,58 @@ class HomeTab extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.more_horiz, color: Colors.grey),
-                onPressed: () {},
-              ),
+              if (post.authorId == currentUserId)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz, color: Colors.grey),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (value) async {
+                    if (value == 'delete') {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text('حذف المنشور'),
+                          content: const Text(
+                            'هل أنت متأكد من حذف هذا المنشور؟',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('إلغاء'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text(
+                                'حذف',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true && context.mounted) {
+                        await FirestoreService().deletePost(post.id);
+                      }
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text('حذف', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 16),

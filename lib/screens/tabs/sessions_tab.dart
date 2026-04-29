@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
@@ -485,15 +486,31 @@ class _SessionsTabState extends State<SessionsTab> {
                     ),
                   )
                 : OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       setState(() {
                         _remindedSessions.add(session.id);
                       });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم تفعيل التذكير لهذه الجلسة'),
-                        ),
-                      );
+                      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+                      if (uid.isNotEmpty) {
+                        await firestoreService.incrementSessionParticipants(
+                          session.id,
+                        );
+                        await firestoreService.addNotification(
+                          userId: uid,
+                          title: 'تذكير بجلسة قادمة',
+                          body: 'سيتم تذكيرك بـ "${session.title}"',
+                          type: 'reminder',
+                        );
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '✓ تم تفعيل التذكير وحُفظ في الإشعارات',
+                            ),
+                          ),
+                        );
+                      }
                     },
                     icon: const Icon(
                       Icons.notifications_active_rounded,

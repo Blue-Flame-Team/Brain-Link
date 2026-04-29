@@ -259,23 +259,43 @@ class _ChatTabState extends State<ChatTab> {
               ),
             ],
           ),
-          GestureDetector(
-            onTap: widget.onProfileTapped,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: deepPurple.withValues(alpha: 0.3),
-                  width: 2,
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade100,
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.black87,
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifications');
+                  },
                 ),
               ),
-              child: const CircleAvatar(
-                backgroundColor: deepPurple,
-                radius: 18,
-                child: Icon(Icons.person, color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: widget.onProfileTapped,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: deepPurple.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: const CircleAvatar(
+                    backgroundColor: deepPurple,
+                    radius: 18,
+                    child: Icon(Icons.person, color: Colors.white, size: 22),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -337,33 +357,40 @@ class _ChatTabState extends State<ChatTab> {
                 Positioned(
                   bottom: 2,
                   right: 2,
-                  child: StreamBuilder<DocumentSnapshot>(
-                    stream: FirestoreService().getUserPresence(
-                      item.otherUserId,
-                    ),
-                    builder: (context, snapshot) {
-                      bool isOnline = item.isOnline;
-                      if (snapshot.hasData && snapshot.data!.exists) {
-                        final data =
-                            snapshot.data!.data() as Map<String, dynamic>?;
-                        if (data != null && data.containsKey('isOnline')) {
-                          isOnline = data['isOnline'] == true;
-                        }
-                      }
+                  child: item.isGroup || item.otherUserId.isEmpty
+                      ? const SizedBox.shrink()
+                      : StreamBuilder<DocumentSnapshot>(
+                          stream: FirestoreService().getUserPresence(
+                            item.otherUserId,
+                          ),
+                          builder: (context, snapshot) {
+                            bool isOnline = item.isOnline;
+                            if (snapshot.hasData && snapshot.data!.exists) {
+                              final data =
+                                  snapshot.data!.data()
+                                      as Map<String, dynamic>?;
+                              if (data != null &&
+                                  data.containsKey('isOnline')) {
+                                isOnline = data['isOnline'] == true;
+                              }
+                            }
 
-                      return Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: isOnline
-                              ? const Color(0xFF00E676)
-                              : Colors.grey.shade400,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.5),
+                            return Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: isOnline
+                                    ? const Color(0xFF00E676)
+                                    : Colors.grey.shade400,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2.5,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),

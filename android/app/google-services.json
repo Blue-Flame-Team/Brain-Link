@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "904794245614",
+    "project_id": "brainlink-945d7",
+    "storage_bucket": "brainlink-945d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:904794245614:android:5f77d52cc84ddb570426ff",
+        "android_client_info": {
+          "package_name": "com.example.brain_link"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "904794245614-j54ll4aofq1h0p5cfgapsi26dha4numt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRpKC_QQRDcrFgWdIW31l33Z41Efbj2yA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "904794245614-j54ll4aofq1h0p5cfgapsi26dha4numt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

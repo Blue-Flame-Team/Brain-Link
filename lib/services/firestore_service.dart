@@ -308,33 +308,4 @@ class FirestoreService {
       return chat;
     }
   }
-
-  Future<void> createGroupChat(
-    String groupName,
-    List<String> initialMembers,
-  ) async {
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == null) return;
-
-    final participants = [currentUserId, ...initialMembers].toSet().toList();
-
-    final newChat = ChatItem(
-      id: '',
-      participantName: groupName,
-      lastMessage: 'تم إنشاء المجموعة',
-      time: DateTime.now(),
-      unreadCount: 0,
-      isOnline: true, // Groups don't really have online status via this flag
-      isGroup: true,
-      hasAttachment: false,
-      otherUserId: 'group',
-    );
-
-    final chatData = newChat.toMap();
-    chatData['participants'] = participants;
-    // ID will be assigned by Firestore
-    chatData.remove('id');
-
-    await _db.collection('chats').add(chatData);
-  }
 }

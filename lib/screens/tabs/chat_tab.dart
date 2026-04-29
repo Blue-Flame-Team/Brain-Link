@@ -15,8 +15,6 @@ class ChatTab extends StatefulWidget {
 }
 
 class _ChatTabState extends State<ChatTab> {
-  bool _showGroups = false;
-
   @override
   Widget build(BuildContext context) {
     const deepPurple = Color(0xFF5E35B1);
@@ -63,89 +61,6 @@ class _ChatTabState extends State<ChatTab> {
               ),
             ),
             const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _showGroups = false),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !_showGroups
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: !_showGroups
-                              ? [
-                                  BoxShadow(
-                                    color: deepPurple.withValues(alpha: 0.08),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Center(
-                          child: Text(
-                            "الرسائل",
-                            style: TextStyle(
-                              color: !_showGroups
-                                  ? deepPurple
-                                  : Colors.grey.shade500,
-                              fontWeight: !_showGroups
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _showGroups = true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _showGroups
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: _showGroups
-                              ? [
-                                  BoxShadow(
-                                    color: deepPurple.withValues(alpha: 0.08),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Center(
-                          child: Text(
-                            "المجموعات",
-                            style: TextStyle(
-                              color: _showGroups
-                                  ? deepPurple
-                                  : Colors.grey.shade500,
-                              fontWeight: _showGroups
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
 
             // CHATS STREAM BUILDER
             Expanded(
@@ -156,27 +71,15 @@ class _ChatTabState extends State<ChatTab> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _showGroups
-                            ? "لا توجد مجموعات حالياً"
-                            : "لا توجد رسائل حالياً",
-                      ),
-                    );
+                    return const Center(child: Text("لا توجد رسائل حالياً"));
                   }
 
                   final filteredChats = snapshot.data!
-                      .where((c) => c.isGroup == _showGroups)
+                      .where((c) => !c.isGroup)
                       .toList();
 
                   if (filteredChats.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _showGroups
-                            ? "لا توجد مجموعات حالياً"
-                            : "لا توجد رسائل حالياً",
-                      ),
-                    );
+                    return const Center(child: Text("لا توجد رسائل حالياً"));
                   }
 
                   return ListView.builder(

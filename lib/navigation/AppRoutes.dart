@@ -8,5 +8,4 @@ class AppRoutes {
   static const String addSession = '/add-session';
   static const String addLibrary = '/add-library';
   static const String notifications = '/notifications';
-  static const String createGroup = '/create-group';
 }

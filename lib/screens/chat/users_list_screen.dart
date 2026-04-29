@@ -17,7 +17,7 @@ class UsersListScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FD),
       appBar: AppBar(
         title: const Text(
-          "المستخدمون والمجموعات",
+          "المستخدمون",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: deepPurple,
@@ -26,15 +26,6 @@ class UsersListScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, '/create-group'),
-        backgroundColor: deepPurple,
-        icon: const Icon(Icons.group_add_rounded, color: Colors.white),
-        label: const Text(
-          "إنشاء مجموعة",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(

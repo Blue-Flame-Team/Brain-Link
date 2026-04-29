@@ -8,7 +8,6 @@ import 'package:brain_link/screens/forms/add_post_screen.dart';
 import 'package:brain_link/screens/forms/add_session_screen.dart';
 import 'package:brain_link/screens/forms/add_library_screen.dart';
 import 'package:brain_link/screens/home_features/notifications_screen.dart';
-import 'package:brain_link/screens/chat/create_group_screen.dart';
 import 'AppRoutes.dart';
 
 class RouterGenerator {
@@ -40,9 +39,6 @@ class RouterGenerator {
 
       case AppRoutes.notifications:
         return MaterialPageRoute(builder: (_) => const NotificationsScreen());
-
-      case AppRoutes.createGroup:
-        return MaterialPageRoute(builder: (_) => const CreateGroupScreen());
 
       default:
         return _errorRoute();

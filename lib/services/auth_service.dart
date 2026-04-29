@@ -15,6 +15,8 @@ class AuthService {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
+      await userCredential.user!.updateDisplayName(name);
+
       try {
         await _db
             .collection('users')

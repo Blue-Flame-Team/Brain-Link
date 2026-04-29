@@ -115,7 +115,7 @@ class LibraryCategoryScreen extends StatelessWidget {
         if (item.fileUrl.isNotEmpty) {
           final uri = Uri.parse(item.fileUrl);
           try {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            await launchUrl(uri);
           } catch (e) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

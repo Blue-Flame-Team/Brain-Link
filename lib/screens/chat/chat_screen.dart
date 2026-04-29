@@ -4,6 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/chat_message.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart' as intl;
 
 class ChatScreen extends StatefulWidget {
@@ -18,6 +23,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _msgController = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
   bool _isTyping = false;
+  bool _isUploadingFile = false;
 
   @override
   void initState() {
@@ -58,6 +64,66 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _pickAndSendFile() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      withData: true, // Supports web
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.single;
+    final fileName = file.name;
+
+    setState(() => _isUploadingFile = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.displayName ?? 'مستخدم';
+      final userId = user?.uid ?? 'anonymous_uid';
+
+      final ref = FirebaseStorage.instance.ref().child(
+        'chat_attachments/${DateTime.now().millisecondsSinceEpoch}_$fileName',
+      );
+
+      UploadTask uploadTask;
+      if (kIsWeb || file.path == null) {
+        uploadTask = ref.putData(file.bytes!);
+      } else {
+        uploadTask = ref.putFile(File(file.path!));
+      }
+
+      final snapshot = await uploadTask;
+      final fileUrl = await snapshot.ref.getDownloadURL();
+
+      final message = ChatMessage(
+        id: '',
+        senderId: userId,
+        senderName: userName,
+        text: '',
+        time: DateTime.now(),
+        fileUrl: fileUrl,
+        fileName: fileName,
+      );
+
+      await _firestoreService.addChatMessage(
+        widget.chatInfo.id,
+        message,
+        'مرفق 📎',
+        hasAttachment: true,
+      );
+    } catch (e) {
+      debugPrint("File upload error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("حدث خطأ أثناء رفع الملف: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingFile = false);
+    }
+  }
+
   Future<void> _sendMessage() async {
     if (_msgController.text.trim().isEmpty) return;
 
@@ -77,7 +143,12 @@ class _ChatScreenState extends State<ChatScreen> {
       time: DateTime.now(),
     );
 
-    await _firestoreService.addChatMessage(widget.chatInfo.id, message, text);
+    await _firestoreService.addChatMessage(
+      widget.chatInfo.id,
+      message,
+      text,
+      hasAttachment: false,
+    );
   }
 
   @override
@@ -259,13 +330,52 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                 ),
                               ),
-                            Text(
-                              msg.text,
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black87,
-                                fontSize: 15,
+                            if (msg.fileUrl != null && msg.fileUrl!.isNotEmpty)
+                              GestureDetector(
+                                onTap: () => launchUrl(Uri.parse(msg.fileUrl!)),
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  margin: const EdgeInsets.only(bottom: 6),
+                                  decoration: BoxDecoration(
+                                    color: (isMe ? Colors.white : deepPurple)
+                                        .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.attachment_rounded,
+                                        size: 20,
+                                        color: isMe ? Colors.white : deepPurple,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          msg.fileName ?? 'المرفق',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isMe
+                                                ? Colors.white
+                                                : deepPurple,
+                                            fontWeight: FontWeight.bold,
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
+                            if (msg.text.isNotEmpty)
+                              Text(
+                                msg.text,
+                                style: TextStyle(
+                                  color: isMe ? Colors.white : Colors.black87,
+                                  fontSize: 15,
+                                ),
+                              ),
                             const SizedBox(height: 4),
                             Text(
                               intl.DateFormat(
@@ -308,11 +418,20 @@ class _ChatScreenState extends State<ChatScreen> {
                       color: Colors.grey.shade100,
                       shape: BoxShape.circle,
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.attach_file_rounded),
-                      color: Colors.grey.shade600,
-                      onPressed: () {},
-                    ),
+                    child: _isUploadingFile
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.attach_file_rounded),
+                            color: Colors.grey.shade600,
+                            onPressed: _pickAndSendFile,
+                          ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(

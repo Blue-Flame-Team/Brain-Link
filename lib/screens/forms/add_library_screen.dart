@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -20,6 +22,7 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
   bool _isLoading = false;
 
   File? _selectedFile;
+  Uint8List? _fileBytes;
   String? _selectedFileName;
   String? _selectedFileSizeStr;
   late String _selectedCategory;
@@ -34,15 +37,18 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'zip', 'docx', 'jpg', 'png'],
+      withData: true,
     );
-    if (result != null && result.files.single.path != null) {
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
       setState(() {
-        _selectedFile = File(result.files.single.path!);
-        _selectedFileName = result.files.single.name;
-        final mb = result.files.single.size / (1024 * 1024);
+        _fileBytes = file.bytes;
+        _selectedFile = kIsWeb || file.path == null ? null : File(file.path!);
+        _selectedFileName = file.name;
+        final mb = file.size / (1024 * 1024);
         _selectedFileSizeStr = "${mb.toStringAsFixed(1)} MB";
 
-        final ext = result.files.single.extension?.toUpperCase() ?? 'PDF';
+        final ext = file.extension?.toUpperCase() ?? 'PDF';
         if (['PDF', 'ZIP', 'DOCX'].contains(ext)) {
           _selectedType = ext;
         }
@@ -51,7 +57,8 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
   }
 
   void _submit() async {
-    if (_titleController.text.trim().isEmpty || _selectedFile == null) {
+    if (_titleController.text.trim().isEmpty ||
+        (_selectedFile == null && _fileBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('الرجاء كتابة العنوان واختيار ملف!')),
       );
@@ -65,8 +72,14 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
       final ref = FirebaseStorage.instance.ref().child(
         'library_files/${DateTime.now().millisecondsSinceEpoch}_$_selectedFileName',
       );
-      final uploadTask = await ref.putFile(_selectedFile!);
-      fileUrl = await uploadTask.ref.getDownloadURL();
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = ref.putData(_fileBytes!);
+      } else {
+        uploadTask = ref.putFile(_selectedFile!);
+      }
+      final snapshot = await uploadTask;
+      fileUrl = await snapshot.ref.getDownloadURL();
     } catch (e) {
       debugPrint("Storage Upload Error: $e");
       if (mounted) {
@@ -194,21 +207,23 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
                 child: Column(
                   children: [
                     Icon(
-                      _selectedFile == null
+                      (_selectedFile == null && _fileBytes == null)
                           ? Icons.upload_file_rounded
                           : Icons.check_circle_rounded,
                       size: 50,
-                      color: _selectedFile == null ? Colors.grey : Colors.green,
+                      color: (_selectedFile == null && _fileBytes == null)
+                          ? Colors.grey
+                          : Colors.green,
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _selectedFile == null
+                      (_selectedFile == null && _fileBytes == null)
                           ? 'اضغط هنا لاختيار الملف'
                           : _selectedFileName!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
-                        color: _selectedFile == null
+                        color: (_selectedFile == null && _fileBytes == null)
                             ? Colors.grey[600]
                             : Colors.green[800],
                         fontWeight: FontWeight.bold,

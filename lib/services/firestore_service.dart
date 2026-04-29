@@ -194,8 +194,9 @@ class FirestoreService {
   Future<void> addChatMessage(
     String chatId,
     ChatMessage message,
-    String text,
-  ) async {
+    String text, {
+    bool hasAttachment = false,
+  }) async {
     await _db
         .collection('chats')
         .doc(chatId)
@@ -205,6 +206,7 @@ class FirestoreService {
     // Also remove the current user from typing array since they just sent the message
     await _db.collection('chats').doc(chatId).update({
       'lastMessage': text,
+      'hasAttachment': hasAttachment,
       'time': FieldValue.serverTimestamp(),
       'typing': FieldValue.arrayRemove([message.senderId]),
     });

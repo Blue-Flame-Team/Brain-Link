@@ -6,6 +6,8 @@ class ChatMessage {
   final String senderName;
   final String text;
   final DateTime time;
+  final String? fileUrl;
+  final String? fileName;
 
   ChatMessage({
     required this.id,
@@ -13,6 +15,8 @@ class ChatMessage {
     required this.senderName,
     required this.text,
     required this.time,
+    this.fileUrl,
+    this.fileName,
   });
 
   factory ChatMessage.fromMap(Map<String, dynamic> data, String documentId) {
@@ -22,6 +26,8 @@ class ChatMessage {
       senderName: data['senderName'] ?? '',
       text: data['text'] ?? '',
       time: (data['time'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      fileUrl: data['fileUrl'],
+      fileName: data['fileName'],
     );
   }
 
@@ -31,6 +37,8 @@ class ChatMessage {
       'senderName': senderName,
       'text': text,
       'time': time,
+      if (fileUrl != null) 'fileUrl': fileUrl,
+      if (fileName != null) 'fileName': fileName,
     };
   }
 }

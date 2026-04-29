@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
 
 class CreateGroupScreen extends StatefulWidget {
@@ -10,10 +12,12 @@ class CreateGroupScreen extends StatefulWidget {
 
 class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _groupNameController = TextEditingController();
+  final List<String> _selectedUsers = [];
 
   @override
   Widget build(BuildContext context) {
     const deepPurple = Color(0xFF5E35B1);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -83,6 +87,67 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 contentPadding: const EdgeInsets.all(16),
               ),
             ),
+            const SizedBox(height: 20),
+            const Text(
+              "اختر الأعضاء (على الأقل عضو واحد)",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("لا يوجد مستخدمون"));
+                  }
+
+                  final users = snapshot.data!.docs
+                      .where((doc) => doc.id != currentUserId)
+                      .toList();
+
+                  if (users.isEmpty) {
+                    return const Center(child: Text("لا يوجد أعضاء متاحين"));
+                  }
+
+                  return ListView.builder(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      final doc = users[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final String uid = doc.id;
+                      final String name = data['name'] ?? 'مستخدم';
+
+                      return CheckboxListTile(
+                        title: Text(name),
+                        activeColor: deepPurple,
+                        value: _selectedUsers.contains(uid),
+                        onChanged: (bool? value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedUsers.add(uid);
+                            } else {
+                              _selectedUsers.remove(uid);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
@@ -98,10 +163,21 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     return;
                   }
 
+                  if (_selectedUsers.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "الرجاء اختيار شخص واحد على الأقل لتكوين مجموعة",
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
                   try {
                     await FirestoreService().createGroupChat(
                       _groupNameController.text.trim(),
-                      [],
+                      _selectedUsers,
                     );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

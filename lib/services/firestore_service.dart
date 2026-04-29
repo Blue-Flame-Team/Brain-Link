@@ -131,9 +131,18 @@ class FirestoreService {
     return _db
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+        .map((s) {
+          final list = s.docs.map((d) => {'id': d.id, ...d.data()}).toList();
+          list.sort((a, b) {
+            final aTime =
+                (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+            final bTime =
+                (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+            return bTime.compareTo(aTime);
+          });
+          return list;
+        });
   }
 
   Future<void> incrementSessionParticipants(String sessionId) async {
@@ -236,6 +245,9 @@ class FirestoreService {
   }
 
   Stream<DocumentSnapshot> getUserPresence(String userId) {
+    if (userId.isEmpty) {
+      return const Stream.empty();
+    }
     return _db.collection('users').doc(userId).snapshots();
   }
 

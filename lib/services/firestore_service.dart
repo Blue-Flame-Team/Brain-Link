@@ -56,28 +56,20 @@ class FirestoreService {
 
             final pNames = data['participantNames'] as Map<String, dynamic>?;
             String displayName = data['participantName'] ?? 'مستخدم';
+            String otherUserId = '';
+
             if (pNames != null) {
-              // Find the other user's name
               final otherNames = pNames.keys.where((k) => k != currentUserId);
               if (otherNames.isNotEmpty) {
-                displayName = pNames[otherNames.first] ?? displayName;
+                otherUserId = otherNames.first;
+                displayName = pNames[otherUserId] ?? displayName;
               }
             }
 
-            var item = ChatItem.fromMap(data, doc.id);
-            return ChatItem(
-              id: item.id,
-              participantName: displayName,
-              lastMessage: item.lastMessage,
-              time: item.time,
-              unreadCount: item.unreadCount,
-              isOnline: item.isOnline,
-              isGroup: item.isGroup,
-              hasAttachment: item.hasAttachment,
-            );
+            var item = ChatItem.fromMap(data, doc.id, otherUserId: otherUserId);
+            return item;
           }).toList();
 
-          // Sort locally to avoid composite index requirement
           chats.sort((a, b) => b.time.compareTo(a.time));
           return chats;
         });
@@ -165,10 +157,55 @@ class FirestoreService {
         .doc(chatId)
         .collection('messages')
         .add(message.toMap());
+
+    // Also remove the current user from typing array since they just sent the message
     await _db.collection('chats').doc(chatId).update({
       'lastMessage': text,
       'time': FieldValue.serverTimestamp(),
+      'typing': FieldValue.arrayRemove([message.senderId]),
     });
+  }
+
+  Future<void> updateTypingStatus(
+    String chatId,
+    String userId,
+    bool isTyping,
+  ) async {
+    try {
+      if (isTyping) {
+        await _db.collection('chats').doc(chatId).update({
+          'typing': FieldValue.arrayUnion([userId]),
+        });
+      } else {
+        await _db.collection('chats').doc(chatId).update({
+          'typing': FieldValue.arrayRemove([userId]),
+        });
+      }
+    } catch (e) {
+      // Ignored for instances where the chat doesn't exist yet
+    }
+  }
+
+  Future<void> updatePresence(bool isOnline) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    try {
+      await _db.collection('users').doc(userId).set({
+        'isOnline': isOnline,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  Stream<DocumentSnapshot> getUserPresence(String userId) {
+    return _db.collection('users').doc(userId).snapshots();
+  }
+
+  Stream<DocumentSnapshot> getChatDocument(String chatId) {
+    return _db.collection('chats').doc(chatId).snapshots();
   }
 
   Future<ChatItem> getOrCreateChat(
@@ -187,13 +224,14 @@ class FirestoreService {
     if (!doc.exists) {
       final newChat = ChatItem(
         id: chatId,
-        participantName: otherUserName, // Simplification for MVP
+        participantName: otherUserName,
         lastMessage: 'بدأت المحادثة',
         time: DateTime.now(),
         unreadCount: 0,
         isOnline: false,
         isGroup: false,
         hasAttachment: false,
+        otherUserId: otherUserId,
       );
       final chatData = newChat.toMap();
       chatData['participants'] = participants;
@@ -207,7 +245,6 @@ class FirestoreService {
     } else {
       final docData = doc.data()!;
 
-      // Attempt to resolve correct display name for the current user
       final pNames = docData['participantNames'] as Map<String, dynamic>?;
       String displayName = docData['participantName'] ?? otherUserName;
 
@@ -220,17 +257,8 @@ class FirestoreService {
             );
       }
 
-      var chat = ChatItem.fromMap(docData, doc.id);
-      return ChatItem(
-        id: chat.id,
-        participantName: displayName,
-        lastMessage: chat.lastMessage,
-        time: chat.time,
-        unreadCount: chat.unreadCount,
-        isOnline: chat.isOnline,
-        isGroup: chat.isGroup,
-        hasAttachment: chat.hasAttachment,
-      );
+      var chat = ChatItem.fromMap(docData, doc.id, otherUserId: otherUserId);
+      return chat;
     }
   }
 }

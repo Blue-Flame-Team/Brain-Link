@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
-import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:brain_link/screens/chat/chat_screen.dart';
@@ -205,7 +205,10 @@ class ChatTab extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: deepPurple.withValues(alpha: 0.3), width: 2),
+              border: Border.all(
+                color: deepPurple.withValues(alpha: 0.3),
+                width: 2,
+              ),
             ),
             child: const CircleAvatar(
               backgroundColor: deepPurple,
@@ -273,16 +276,28 @@ class ChatTab extends StatelessWidget {
                 Positioned(
                   bottom: 2,
                   right: 2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: item.isOnline
-                          ? const Color(0xFF00E676)
-                          : Colors.grey.shade400,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2.5),
+                  child: StreamBuilder<DocumentSnapshot>(
+                    stream: FirestoreService().getUserPresence(
+                      item.otherUserId,
                     ),
+                    builder: (context, snapshot) {
+                      bool isOnline = item.isOnline;
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        isOnline = snapshot.data!.get('isOnline') ?? false;
+                      }
+
+                      return Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isOnline
+                              ? const Color(0xFF00E676)
+                              : Colors.grey.shade400,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -376,4 +391,3 @@ class ChatTab extends StatelessWidget {
     );
   }
 }
-

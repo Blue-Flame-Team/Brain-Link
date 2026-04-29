@@ -158,6 +158,8 @@ class ChatItem {
   final bool isOnline;
   final bool isGroup;
   final bool hasAttachment;
+  final String otherUserId;
+  final List<String> typingUsers;
 
   ChatItem({
     required this.id,
@@ -168,9 +170,15 @@ class ChatItem {
     required this.isOnline,
     required this.isGroup,
     required this.hasAttachment,
+    this.otherUserId = '',
+    this.typingUsers = const [],
   });
 
-  factory ChatItem.fromMap(Map<String, dynamic> data, String id) {
+  factory ChatItem.fromMap(
+    Map<String, dynamic> data,
+    String id, {
+    String otherUserId = '',
+  }) {
     return ChatItem(
       id: id,
       participantName: data['participantName'] ?? '',
@@ -180,6 +188,8 @@ class ChatItem {
       isOnline: data['isOnline'] ?? false,
       isGroup: data['isGroup'] ?? false,
       hasAttachment: data['hasAttachment'] ?? false,
+      otherUserId: otherUserId,
+      typingUsers: List<String>.from(data['typing'] ?? []),
     );
   }
 
@@ -192,6 +202,7 @@ class ChatItem {
       'isOnline': isOnline,
       'isGroup': isGroup,
       'hasAttachment': hasAttachment,
+      'typing': typingUsers,
     };
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/chat_message.dart';
@@ -16,6 +17,46 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _msgController = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
+  bool _isTyping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _msgController.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _msgController.removeListener(_onTextChanged);
+    if (_isTyping) {
+      _updateTypingStatus(false);
+    }
+    _msgController.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final text = _msgController.text.trim();
+    if (text.isNotEmpty && !_isTyping) {
+      _isTyping = true;
+      _updateTypingStatus(true);
+    } else if (text.isEmpty && _isTyping) {
+      _isTyping = false;
+      _updateTypingStatus(false);
+    }
+  }
+
+  void _updateTypingStatus(bool typing) {
+    if (widget.chatInfo.id.isEmpty) return;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (currentUserId.isNotEmpty) {
+      _firestoreService.updateTypingStatus(
+        widget.chatInfo.id,
+        currentUserId,
+        typing,
+      );
+    }
+  }
 
   Future<void> _sendMessage() async {
     if (_msgController.text.trim().isEmpty) return;
@@ -25,7 +66,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final userId = user?.uid ?? 'anonymous_uid';
 
     final text = _msgController.text.trim();
-    _msgController.clear();
+    _msgController
+        .clear(); // This will trigger _onTextChanged and set _isTyping to false
 
     final message = ChatMessage(
       id: '',
@@ -35,10 +77,6 @@ class _ChatScreenState extends State<ChatScreen> {
       time: DateTime.now(),
     );
 
-    // Call service to add message to /chats/{id}/messages
-    // First, let's make sure this method exists in FirestoreService.
-    // Actually, I can write to firestore directly or add a new method to the service.
-    // I'll define it here to be safe:
     await _firestoreService.addChatMessage(widget.chatInfo.id, message, text);
   }
 
@@ -73,14 +111,52 @@ class _ChatScreenState extends State<ChatScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  widget.chatInfo.isOnline ? 'نشط الآن' : 'غير متصل',
-                  style: TextStyle(
-                    color: widget.chatInfo.isOnline
-                        ? Colors.green
-                        : Colors.grey,
-                    fontSize: 12,
+                StreamBuilder<DocumentSnapshot>(
+                  stream: _firestoreService.getUserPresence(
+                    widget.chatInfo.otherUserId,
                   ),
+                  builder: (context, userSnap) {
+                    bool isOnline = widget.chatInfo.isOnline;
+                    if (userSnap.hasData && userSnap.data!.exists) {
+                      isOnline = userSnap.data!.get('isOnline') ?? false;
+                    }
+
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: _firestoreService.getChatDocument(
+                        widget.chatInfo.id,
+                      ),
+                      builder: (context, chatSnap) {
+                        bool isOtherUserTyping = false;
+                        if (chatSnap.hasData && chatSnap.data!.exists) {
+                          List<dynamic> typingUsers =
+                              chatSnap.data!.get('typing') ?? [];
+                          isOtherUserTyping = typingUsers.contains(
+                            widget.chatInfo.otherUserId,
+                          );
+                        }
+
+                        if (isOtherUserTyping && !widget.chatInfo.isGroup) {
+                          return const Text(
+                            'يكتب الآن...',
+                            style: TextStyle(
+                              color: deepPurple,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          );
+                        }
+
+                        return Text(
+                          isOnline ? 'نشط الآن' : 'غير متصل',
+                          style: TextStyle(
+                            color: isOnline ? Colors.green : Colors.grey,
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -260,4 +336,3 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-

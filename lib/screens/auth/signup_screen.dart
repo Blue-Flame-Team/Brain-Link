@@ -83,6 +83,15 @@ class _SignupScreenState extends State<SignupScreen> {
           _showSnackBar("Account Created Successfully!", Colors.green);
           Navigator.pushReplacementNamed(context, AppRoutes.login);
         }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'network-request-failed' || e.code == 'unknown') {
+          _showSnackBar(
+            "يجب توفر إنترنت لإنشاء حساب جديد، لا يمكن التسجيل Offline.",
+            Colors.red,
+          );
+        } else {
+          _showSnackBar(e.message ?? e.toString(), Colors.red);
+        }
       } catch (e) {
         _showSnackBar(e.toString(), Colors.red);
       } finally {

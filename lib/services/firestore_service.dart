@@ -2,44 +2,57 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/chat_message.dart';
+import 'package:brain_link/services/local_storage_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Streams
-  Stream<List<Session>> getSessions() {
-    return _db
+  Stream<List<Session>> getSessions() async* {
+    yield await LocalStorageService.getSessions();
+    yield* _db
         .collection('sessions')
         .orderBy('startTime', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => Session.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+              .toList();
+          for (var s in list) {
+            LocalStorageService.saveSession(s);
+          }
+          return list;
+        });
   }
 
-  Stream<List<Post>> getPosts() {
-    return _db
+  Stream<List<Post>> getPosts() async* {
+    yield await LocalStorageService.getPosts();
+    yield* _db
         .collection('posts')
         .orderBy('timeStamp', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => Post.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+              .toList();
+          for (var p in list) {
+            LocalStorageService.savePost(p);
+          }
+          return list;
+        });
   }
 
-  Stream<List<LibraryItem>> getLibraryItems() {
-    return _db
-        .collection('library')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => LibraryItem.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+  Stream<List<LibraryItem>> getLibraryItems() async* {
+    yield await LocalStorageService.getLibraryItems();
+    yield* _db.collection('library').snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => LibraryItem.fromMap(doc.data(), doc.id))
+          .toList();
+      for (var item in list) {
+        LocalStorageService.saveLibraryItem(item);
+      }
+      return list;
+    });
   }
 
   Stream<List<ChatItem>> getChats() {
@@ -78,14 +91,17 @@ class FirestoreService {
   // Insert Methods
   Future<void> addPost(Post post) async {
     await _db.collection('posts').add(post.toMap());
+    await LocalStorageService.savePost(post);
   }
 
   Future<void> addSession(Session session) async {
     await _db.collection('sessions').add(session.toMap());
+    await LocalStorageService.saveSession(session);
   }
 
   Future<void> addLibraryItem(LibraryItem item) async {
     await _db.collection('library').add(item.toMap());
+    await LocalStorageService.saveLibraryItem(item);
   }
 
   // Interactions
@@ -177,18 +193,23 @@ class FirestoreService {
   }
 
   // Chats
-  Stream<List<ChatMessage>> getChatMessages(String chatId) {
-    return _db
+  Stream<List<ChatMessage>> getChatMessages(String chatId) async* {
+    yield await LocalStorageService.getChatMessages(chatId);
+    yield* _db
         .collection('chats')
         .doc(chatId)
         .collection('messages')
         .orderBy('time', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
               .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
-              .toList(),
-        );
+              .toList();
+          for (var m in list) {
+            LocalStorageService.saveChatMessage(chatId, m);
+          }
+          return list;
+        });
   }
 
   Future<void> addChatMessage(
@@ -202,6 +223,8 @@ class FirestoreService {
         .doc(chatId)
         .collection('messages')
         .add(message.toMap());
+
+    await LocalStorageService.saveChatMessage(chatId, message);
 
     // Also remove the current user from typing array since they just sent the message
     await _db.collection('chats').doc(chatId).update({

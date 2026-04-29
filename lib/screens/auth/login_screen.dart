@@ -38,13 +38,33 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passController.text,
         );
 
-        await SharedPrefHelper.setLoggedIn(true);
+        await SharedPrefHelper.setUser(
+          _emailController.text.trim(),
+          "logged_in",
+        );
 
         if (mounted) {
           _showSnackBar("Welcome Back!", Colors.green);
           Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
         }
       } on FirebaseAuthException catch (e) {
+        if (e.code == 'network-request-failed' || e.code == 'unknown') {
+          // Fallback to local offline login
+          String? localEmail = await SharedPrefHelper.getEmail();
+          if (localEmail != null &&
+              localEmail == _emailController.text.trim()) {
+            await SharedPrefHelper.setLoggedIn(true);
+            if (mounted) {
+              _showSnackBar(
+                "تم تسجيل الدخول بدون إنترنت (Offline)",
+                Colors.orange,
+              );
+              Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
+            }
+            return;
+          }
+        }
+
         String msg = "";
         switch (e.code) {
           case 'user-not-found':
@@ -58,6 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
             break;
           case 'invalid-email':
             msg = "The email address is invalid";
+            break;
+          case 'network-request-failed':
+            msg = "No internet connection and no offline data for this user";
             break;
           case 'user-disabled':
             msg = "This user account has been disabled";

@@ -61,7 +61,8 @@ class LibraryCategoryScreen extends StatelessWidget {
 
             // Filter items by category exactly matching the title passed or if it's the dummy "عام"
             final filteredItems = snapshot.data!.where((item) {
-              return item.category == categoryTitle;
+              return item.category == categoryTitle &&
+                  item.fileUrl != 'http://example.com/fallback.pdf';
             }).toList();
 
             if (filteredItems.isEmpty) {

@@ -100,65 +100,77 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.chatInfo.participantName,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.chatInfo.participantName,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                StreamBuilder<DocumentSnapshot>(
-                  stream: _firestoreService.getUserPresence(
-                    widget.chatInfo.otherUserId,
-                  ),
-                  builder: (context, userSnap) {
-                    bool isOnline = widget.chatInfo.isOnline;
-                    if (userSnap.hasData && userSnap.data!.exists) {
-                      isOnline = userSnap.data!.get('isOnline') ?? false;
-                    }
-
-                    return StreamBuilder<DocumentSnapshot>(
-                      stream: _firestoreService.getChatDocument(
-                        widget.chatInfo.id,
-                      ),
-                      builder: (context, chatSnap) {
-                        bool isOtherUserTyping = false;
-                        if (chatSnap.hasData && chatSnap.data!.exists) {
-                          List<dynamic> typingUsers =
-                              chatSnap.data!.get('typing') ?? [];
-                          isOtherUserTyping = typingUsers.contains(
-                            widget.chatInfo.otherUserId,
-                          );
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: _firestoreService.getUserPresence(
+                      widget.chatInfo.otherUserId,
+                    ),
+                    builder: (context, userSnap) {
+                      bool isOnline = widget.chatInfo.isOnline;
+                      if (userSnap.hasData && userSnap.data!.exists) {
+                        final data =
+                            userSnap.data!.data() as Map<String, dynamic>?;
+                        if (data != null && data.containsKey('isOnline')) {
+                          isOnline = data['isOnline'] == true;
                         }
+                      }
 
-                        if (isOtherUserTyping && !widget.chatInfo.isGroup) {
-                          return const Text(
-                            'يكتب الآن...',
+                      return StreamBuilder<DocumentSnapshot>(
+                        stream: _firestoreService.getChatDocument(
+                          widget.chatInfo.id,
+                        ),
+                        builder: (context, chatSnap) {
+                          bool isOtherUserTyping = false;
+                          if (chatSnap.hasData && chatSnap.data!.exists) {
+                            final chatData =
+                                chatSnap.data!.data() as Map<String, dynamic>?;
+                            List<dynamic> typingUsers = [];
+                            if (chatData != null &&
+                                chatData.containsKey('typing')) {
+                              typingUsers = chatData['typing'] ?? [];
+                            }
+                            isOtherUserTyping = typingUsers.contains(
+                              widget.chatInfo.otherUserId,
+                            );
+                          }
+
+                          if (isOtherUserTyping && !widget.chatInfo.isGroup) {
+                            return const Text(
+                              'يكتب الآن...',
+                              style: TextStyle(
+                                color: deepPurple,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            );
+                          }
+
+                          return Text(
+                            isOnline ? 'نشط الآن' : 'غير متصل',
                             style: TextStyle(
-                              color: deepPurple,
+                              color: isOnline ? Colors.green : Colors.grey,
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              fontStyle: FontStyle.italic,
                             ),
                           );
-                        }
-
-                        return Text(
-                          isOnline ? 'نشط الآن' : 'غير متصل',
-                          style: TextStyle(
-                            color: isOnline ? Colors.green : Colors.grey,
-                            fontSize: 12,
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),

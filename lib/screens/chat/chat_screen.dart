@@ -82,8 +82,10 @@ class _ChatScreenState extends State<ChatScreen> {
       final userName = user?.displayName ?? 'مستخدم';
       final userId = user?.uid ?? 'anonymous_uid';
 
+      final ext = file.name.split('.').last;
+      final safeFileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
       final ref = FirebaseStorage.instance.ref().child(
-        'chat_attachments/${DateTime.now().millisecondsSinceEpoch}_$fileName',
+        'library_files/chat_attachment_$safeFileName',
       );
 
       UploadTask uploadTask;

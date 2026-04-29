@@ -69,8 +69,10 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
 
     String fileUrl = '';
     try {
+      final ext = _selectedFileName?.split('.').last ?? 'file';
+      final safeFileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
       final ref = FirebaseStorage.instance.ref().child(
-        'library_files/${DateTime.now().millisecondsSinceEpoch}_$_selectedFileName',
+        'library_files/$safeFileName',
       );
       UploadTask uploadTask;
       if (kIsWeb) {

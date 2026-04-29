@@ -94,9 +94,15 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             CircleAvatar(
               backgroundColor: deepPurple.withValues(alpha: 0.1),
-              child: Icon(
-                widget.chatInfo.isGroup ? Icons.group : Icons.person,
-                color: deepPurple,
+              child: Text(
+                widget.chatInfo.participantName.isNotEmpty
+                    ? widget.chatInfo.participantName[0].toUpperCase()
+                    : '؟',
+                style: const TextStyle(
+                  color: deepPurple,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 12),

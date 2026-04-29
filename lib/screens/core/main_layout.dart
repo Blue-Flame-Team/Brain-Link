@@ -16,10 +16,13 @@ class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
   List<Widget> get _pages => [
-    HomeTab(onViewAllSessions: () => setState(() => _currentIndex = 1)),
+    HomeTab(
+      onViewAllSessions: () => setState(() => _currentIndex = 1),
+      onProfileTapped: () => setState(() => _currentIndex = 4),
+    ),
     const SessionsTab(),
     const LibraryTab(),
-    const ChatTab(),
+    ChatTab(onProfileTapped: () => setState(() => _currentIndex = 4)),
     const ProfileTab(),
   ];
 

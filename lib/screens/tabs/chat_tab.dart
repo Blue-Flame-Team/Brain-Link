@@ -6,8 +6,16 @@ import 'package:intl/intl.dart' as intl;
 import 'package:brain_link/screens/chat/chat_screen.dart';
 import 'package:brain_link/screens/chat/users_list_screen.dart';
 
-class ChatTab extends StatelessWidget {
-  const ChatTab({super.key});
+class ChatTab extends StatefulWidget {
+  final VoidCallback? onProfileTapped;
+  const ChatTab({super.key, this.onProfileTapped});
+
+  @override
+  State<ChatTab> createState() => _ChatTabState();
+}
+
+class _ChatTabState extends State<ChatTab> {
+  bool _showGroups = false;
 
   @override
   Widget build(BuildContext context) {
@@ -60,26 +68,37 @@ class ChatTab extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: deepPurple.withValues(alpha: 0.08),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "الرسائل",
-                          style: TextStyle(
-                            color: deepPurple,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showGroups = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_showGroups
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: !_showGroups
+                              ? [
+                                  BoxShadow(
+                                    color: deepPurple.withValues(alpha: 0.08),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Center(
+                          child: Text(
+                            "الرسائل",
+                            style: TextStyle(
+                              color: !_showGroups
+                                  ? deepPurple
+                                  : Colors.grey.shade500,
+                              fontWeight: !_showGroups
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
@@ -87,19 +106,37 @@ class ChatTab extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Text(
-                          "المجموعات",
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _showGroups = true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _showGroups
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: _showGroups
+                              ? [
+                                  BoxShadow(
+                                    color: deepPurple.withValues(alpha: 0.08),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : [],
+                        ),
+                        child: Center(
+                          child: Text(
+                            "المجموعات",
+                            style: TextStyle(
+                              color: _showGroups
+                                  ? deepPurple
+                                  : Colors.grey.shade500,
+                              fontWeight: _showGroups
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
@@ -119,17 +156,37 @@ class ChatTab extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("لا توجد رسائل حالياً"));
+                    return Center(
+                      child: Text(
+                        _showGroups
+                            ? "لا توجد مجموعات حالياً"
+                            : "لا توجد رسائل حالياً",
+                      ),
+                    );
+                  }
+
+                  final filteredChats = snapshot.data!
+                      .where((c) => c.isGroup == _showGroups)
+                      .toList();
+
+                  if (filteredChats.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _showGroups
+                            ? "لا توجد مجموعات حالياً"
+                            : "لا توجد رسائل حالياً",
+                      ),
+                    );
                   }
 
                   return ListView.builder(
                     physics: const BouncingScrollPhysics(),
-                    itemCount: snapshot.data!.length,
+                    itemCount: filteredChats.length,
                     itemBuilder: (context, index) {
-                      final isLast = index == snapshot.data!.length - 1;
+                      final isLast = index == filteredChats.length - 1;
                       return Padding(
                         padding: EdgeInsets.only(bottom: isLast ? 80.0 : 0),
-                        child: _buildChatItem(context, snapshot.data![index]),
+                        child: _buildChatItem(context, filteredChats[index]),
                       );
                     },
                   );
@@ -202,18 +259,22 @@ class ChatTab extends StatelessWidget {
               ),
             ],
           ),
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: deepPurple.withValues(alpha: 0.3),
-                width: 2,
+          GestureDetector(
+            onTap: widget.onProfileTapped,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: deepPurple.withValues(alpha: 0.3),
+                  width: 2,
+                ),
               ),
-            ),
-            child: const CircleAvatar(
-              backgroundColor: deepPurple,
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.white, size: 22),
+              child: const CircleAvatar(
+                backgroundColor: deepPurple,
+                radius: 18,
+                child: Icon(Icons.person, color: Colors.white, size: 22),
+              ),
             ),
           ),
         ],
@@ -228,10 +289,7 @@ class ChatTab extends StatelessWidget {
     final dateFormat = intl.DateFormat('hh:mm a', 'en_US');
     String timeStr = dateFormat.format(item.time);
     if (DateTime.now().difference(item.time).inDays >= 1) {
-      timeStr = intl.DateFormat(
-        'E',
-        'ar',
-      ).format(item.time); // Show day name in Arabic if older than 1 day
+      timeStr = intl.DateFormat('E', 'ar').format(item.time);
     }
 
     return GestureDetector(
@@ -265,13 +323,16 @@ class ChatTab extends StatelessWidget {
                   backgroundColor: item.isGroup
                       ? deepPurple.withValues(alpha: 0.15)
                       : deepPurple.withValues(alpha: 0.05),
-                  child: item.isGroup
-                      ? const Icon(
-                          Icons.group_rounded,
-                          color: deepPurple,
-                          size: 30,
-                        )
-                      : const Icon(Icons.person, color: deepPurple, size: 32),
+                  child: Text(
+                    item.participantName.isNotEmpty
+                        ? item.participantName[0].toUpperCase()
+                        : '؟',
+                    style: const TextStyle(
+                      color: deepPurple,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 Positioned(
                   bottom: 2,
@@ -283,7 +344,11 @@ class ChatTab extends StatelessWidget {
                     builder: (context, snapshot) {
                       bool isOnline = item.isOnline;
                       if (snapshot.hasData && snapshot.data!.exists) {
-                        isOnline = snapshot.data!.get('isOnline') ?? false;
+                        final data =
+                            snapshot.data!.data() as Map<String, dynamic>?;
+                        if (data != null && data.containsKey('isOnline')) {
+                          isOnline = data['isOnline'] == true;
+                        }
                       }
 
                       return Container(

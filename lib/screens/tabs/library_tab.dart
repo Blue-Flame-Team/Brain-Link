@@ -178,19 +178,30 @@ class _LibraryTabState extends State<LibraryTab> {
               ),
             ],
           ),
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: deepPurple.withValues(alpha: 0.3),
-                width: 2,
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade100,
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.black87,
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifications');
+                  },
+                ),
               ),
-            ),
-            child: const CircleAvatar(
-              backgroundColor: deepPurple,
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.white, size: 22),
-            ),
+              const SizedBox(width: 8),
+              const CircleAvatar(
+                backgroundColor: deepPurple,
+                radius: 18,
+                child: Icon(Icons.person, color: Colors.white, size: 22),
+              ),
+            ],
           ),
         ],
       ),

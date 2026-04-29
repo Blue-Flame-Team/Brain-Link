@@ -1,11 +1,58 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:brain_link/navigation/AppRoutes.dart';
 import 'package:brain_link/helpers/shared_pref_helper.dart';
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  bool _uploadingPhoto = false;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 75,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final ref = FirebaseStorage.instance.ref().child(
+        'profile_photos/${user.uid}.jpg',
+      );
+      await ref.putFile(File(picked.path));
+      final url = await ref.getDownloadURL();
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {'photoUrl': url},
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحديث الصورة بنجاح ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('خطأ في رفع الصورة: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,12 +60,13 @@ class ProfileTab extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.pushReplacementNamed(context, AppRoutes.login);
-          },
-          child: const Text("يرجى تسجيل الدخول"),
+      return Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: () =>
+                Navigator.pushReplacementNamed(context, AppRoutes.login),
+            child: const Text("يرجى تسجيل الدخول"),
+          ),
         ),
       );
     }
@@ -36,15 +84,15 @@ class ProfileTab extends StatelessWidget {
           );
         }
 
-        Map<String, dynamic> userData = {};
-        if (snapshot.hasData && snapshot.data!.exists) {
-          userData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-        }
+        final userData = (snapshot.hasData && snapshot.data!.exists)
+            ? snapshot.data!.data() as Map<String, dynamic>? ?? {}
+            : <String, dynamic>{};
 
         final userName = userData['name'] ?? user.displayName ?? "مستخدم جديد";
         final userRole = userData['role'] == 'Teacher' ? 'معلم / خبير' : 'طالب';
         final userLevel = userData['level'] ?? 'عام';
         final userRating = userData['rating'] ?? 0;
+        final photoUrl = userData['photoUrl'] as String?;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FD),
@@ -75,38 +123,50 @@ class ProfileTab extends StatelessWidget {
               children: [
                 Center(
                   child: Stack(
+                    alignment: Alignment.bottomRight,
                     children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: deepPurple.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: deepPurple, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          size: 60,
-                          color: deepPurple,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () =>
-                              _showEditDialog(context, userName, user.uid),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: deepPurple,
-                              shape: BoxShape.circle,
+                      _uploadingPhoto
+                          ? const SizedBox(
+                              width: 120,
+                              height: 120,
+                              child: CircularProgressIndicator(strokeWidth: 3),
+                            )
+                          : Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: deepPurple.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: deepPurple, width: 2),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: photoUrl != null && photoUrl.isNotEmpty
+                                  ? Image.network(photoUrl, fit: BoxFit.cover)
+                                  : Center(
+                                      child: Text(
+                                        userName.isNotEmpty
+                                            ? userName[0].toUpperCase()
+                                            : '؟',
+                                        style: const TextStyle(
+                                          color: deepPurple,
+                                          fontSize: 42,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                             ),
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                      GestureDetector(
+                        onTap: _pickAndUploadPhoto,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: deepPurple,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 20,
                           ),
                         ),
                       ),
@@ -164,11 +224,8 @@ class ProfileTab extends StatelessWidget {
                 _buildProfileOption(
                   icon: Icons.notifications_none,
                   title: "الإشعارات",
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("لا توجد إشعارات حالياً")),
-                    );
-                  },
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.notifications),
                 ),
                 const SizedBox(height: 20),
                 _buildProfileOption(
@@ -270,15 +327,11 @@ class ProfileTab extends StatelessWidget {
               onPressed: () async {
                 final newName = controller.text.trim();
                 if (newName.isNotEmpty) {
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(uid)
-                        .update({'name': newName});
-                    if (context.mounted) Navigator.pop(context);
-                  } catch (e) {
-                    // IGNORE
-                  }
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(uid)
+                      .update({'name': newName});
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               child: const Text("حفظ"),

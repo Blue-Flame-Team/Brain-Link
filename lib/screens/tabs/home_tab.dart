@@ -18,8 +18,9 @@ String _formatTimeAgo(DateTime time) {
 
 class HomeTab extends StatelessWidget {
   final VoidCallback? onViewAllSessions;
+  final VoidCallback? onProfileTapped;
 
-  const HomeTab({super.key, this.onViewAllSessions});
+  const HomeTab({super.key, this.onViewAllSessions, this.onProfileTapped});
 
   @override
   Widget build(BuildContext context) {
@@ -230,19 +231,22 @@ class HomeTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: deepPurple.withValues(alpha: 0.3),
-                    width: 2,
+              GestureDetector(
+                onTap: onProfileTapped,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: deepPurple.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
                   ),
-                ),
-                child: const CircleAvatar(
-                  backgroundColor: deepPurple,
-                  radius: 18,
-                  child: Icon(Icons.person, color: Colors.white, size: 22),
+                  child: const CircleAvatar(
+                    backgroundColor: deepPurple,
+                    radius: 18,
+                    child: Icon(Icons.person, color: Colors.white, size: 22),
+                  ),
                 ),
               ),
             ],

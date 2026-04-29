@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 
@@ -20,10 +22,23 @@ class _AddPostScreenState extends State<AddPostScreen> {
 
     setState(() => _isLoading = true);
 
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    final data = doc.data() ?? {};
+    final String actualName =
+        data['name'] ??
+        FirebaseAuth.instance.currentUser?.displayName ??
+        'مستخدم BrainLink';
+    final String actualRole = data['role'] == 'Teacher'
+        ? 'معلم / خبير'
+        : 'مطور / طالب';
+
     final newPost = Post(
       id: '',
-      authorName: 'مستخدم BrainLink', // Can be fetched from Auth later
-      authorRole: 'مبرمج',
+      authorName: actualName,
+      authorRole: actualRole,
       timeStamp: DateTime.now(),
       content: _contentController.text.trim(),
       hasCodeSnippet: _hasCode,
@@ -114,7 +129,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'نشر දැන්',
+                        'نشر',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

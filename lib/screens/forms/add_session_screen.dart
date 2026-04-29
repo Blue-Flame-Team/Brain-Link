@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:intl/intl.dart' as intl;
@@ -84,8 +85,15 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
       );
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final String hostName = currentUser?.displayName ?? 'مستخدم';
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
+    final data = doc.data() ?? {};
+    final String hostName =
+        data['name'] ??
+        FirebaseAuth.instance.currentUser?.displayName ??
+        'مستخدم';
 
     final newSession = Session(
       id: '',

@@ -17,7 +17,9 @@ String _formatTimeAgo(DateTime time) {
 }
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  final VoidCallback? onViewAllSessions;
+
+  const HomeTab({super.key, this.onViewAllSessions});
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +62,15 @@ class HomeTab extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      "عرض الكل",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: deepPurple,
-                        fontWeight: FontWeight.w600,
+                    InkWell(
+                      onTap: onViewAllSessions,
+                      child: Text(
+                        "عرض الكل",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: deepPurple,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],

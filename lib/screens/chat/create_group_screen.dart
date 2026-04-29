@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:brain_link/services/firestore_service.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -87,7 +88,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_groupNameController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -96,15 +97,29 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     );
                     return;
                   }
-                  // TODO: Implement actual group creation via Firestore
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'تم إنشاء مجموعة "${_groupNameController.text}" بنجاح!',
-                      ),
-                    ),
-                  );
-                  Navigator.pop(context);
+
+                  try {
+                    await FirestoreService().createGroupChat(
+                      _groupNameController.text.trim(),
+                      [],
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'تم إنشاء مجموعة "${_groupNameController.text}" بنجاح!',
+                          ),
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: deepPurple,

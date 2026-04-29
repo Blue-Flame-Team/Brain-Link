@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           _showSnackBar("Welcome Back!", Colors.green);
-          Navigator.pushReplacementNamed(context, AppRoutes.roleScreen);
+          Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
         }
       } on FirebaseAuthException catch (e) {
         String msg = "";

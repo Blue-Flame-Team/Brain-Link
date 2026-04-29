@@ -69,7 +69,13 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
       fileUrl = await uploadTask.ref.getDownloadURL();
     } catch (e) {
       debugPrint("Storage Upload Error: $e");
-      fileUrl = 'http://example.com/fallback.pdf'; // fallback if rules block it
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('حدث خطأ أثناء رفع الملف: $e')));
+      }
+      return;
     }
 
     final newItem = LibraryItem(

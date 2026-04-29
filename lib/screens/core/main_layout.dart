@@ -3,6 +3,7 @@ import 'package:brain_link/screens/tabs/home_tab.dart';
 import 'package:brain_link/screens/tabs/sessions_tab.dart';
 import 'package:brain_link/screens/tabs/library_tab.dart';
 import 'package:brain_link/screens/tabs/chat_tab.dart';
+import 'package:brain_link/screens/tabs/profile_tab.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -14,17 +15,12 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomeTab(),
+  List<Widget> get _pages => [
+    HomeTab(onViewAllSessions: () => setState(() => _currentIndex = 1)),
     const SessionsTab(),
     const LibraryTab(),
     const ChatTab(),
-    const Center(
-      child: Text(
-        "حسابي",
-        style: TextStyle(fontSize: 24, color: Color(0xFF5E35B1)),
-      ),
-    ),
+    const ProfileTab(),
   ];
 
   @override
@@ -138,4 +134,3 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 }
-

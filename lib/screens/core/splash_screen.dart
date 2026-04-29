@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:brain_link/navigation/AppRoutes.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    _checkAuthState();
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -26,6 +28,15 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       }
     });
+  }
+
+  void _checkAuthState() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (FirebaseAuth.instance.currentUser != null) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
+      }
+    }
   }
 
   @override
@@ -38,12 +49,16 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       await _audioPlayer.play(AssetSource('sounds/click.mp3'));
     } catch (e) {
-      print("Error playing sound: $e");
+      debugPrint("Error playing sound: $e");
     }
 
     HapticFeedback.lightImpact();
 
-    Navigator.pushReplacementNamed(context, AppRoutes.signup);
+    if (FirebaseAuth.instance.currentUser != null) {
+      Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
+    } else {
+      Navigator.pushReplacementNamed(context, AppRoutes.signup);
+    }
   }
 
   @override

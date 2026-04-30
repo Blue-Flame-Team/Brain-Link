@@ -5,11 +5,14 @@ import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/chat_message.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart' as intl;
+import 'package:brain_link/helpers/file_handler.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatItem chatInfo;
@@ -84,19 +87,23 @@ class _ChatScreenState extends State<ChatScreen> {
 
       final ext = file.name.split('.').last;
       final safeFileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-      final ref = FirebaseStorage.instance.ref().child(
-        'library_files/chat_attachment_$safeFileName',
-      );
+      String dbKey = safeFileName.replaceAll('.', '_');
 
-      UploadTask uploadTask;
+      // Convert to Base64
+      Uint8List bytesToUpload;
       if (kIsWeb || file.path == null) {
-        uploadTask = ref.putData(file.bytes!);
+        bytesToUpload = file.bytes!;
       } else {
-        uploadTask = ref.putFile(File(file.path!));
+        bytesToUpload = await File(file.path!).readAsBytes();
       }
+      String base64String = base64Encode(bytesToUpload);
 
-      final snapshot = await uploadTask;
-      final fileUrl = await snapshot.ref.getDownloadURL();
+      final dbRef = FirebaseDatabase.instance
+          .ref('chat_attachments')
+          .child(dbKey);
+      await dbRef.set({'data': base64String, 'name': fileName});
+
+      final fileUrl = 'rtdb://chat_attachments/$dbKey';
 
       final message = ChatMessage(
         id: '',
@@ -334,7 +341,10 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             if (msg.fileUrl != null && msg.fileUrl!.isNotEmpty)
                               GestureDetector(
-                                onTap: () => launchUrl(Uri.parse(msg.fileUrl!)),
+                                onTap: () => FileHandler.openFile(
+                                  msg.fileUrl!,
+                                  defaultFileName: msg.fileName,
+                                ),
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   margin: const EdgeInsets.only(bottom: 6),

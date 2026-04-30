@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 
@@ -71,17 +73,25 @@ class _AddLibraryScreenState extends State<AddLibraryScreen> {
     try {
       final ext = _selectedFileName?.split('.').last ?? 'file';
       final safeFileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-      final ref = FirebaseStorage.instance.ref().child(
-        'library_files/$safeFileName',
-      );
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        uploadTask = ref.putData(_fileBytes!);
+
+      // Convert to Base64
+      Uint8List bytesToUpload;
+      if (kIsWeb || _selectedFile == null) {
+        bytesToUpload = _fileBytes!;
       } else {
-        uploadTask = ref.putFile(_selectedFile!);
+        bytesToUpload = await _selectedFile!.readAsBytes();
       }
-      final snapshot = await uploadTask;
-      fileUrl = await snapshot.ref.getDownloadURL();
+      String base64String = base64Encode(bytesToUpload);
+
+      String dbKey = safeFileName.replaceAll('.', '_');
+      final dbRef = FirebaseDatabase.instance.ref('library_files').child(dbKey);
+      await dbRef.set({
+        'data': base64String,
+        'name': safeFileName,
+        'type': _selectedType,
+      });
+
+      fileUrl = 'rtdb://library_files/$dbKey';
     } catch (e) {
       debugPrint("Storage Upload Error: $e");
       if (mounted) {

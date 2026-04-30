@@ -8,51 +8,39 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Streams
-  Stream<List<Session>> getSessions() async* {
-    yield await LocalStorageService.getSessions();
-    yield* _db
+  Stream<List<Session>> getSessions() {
+    return _db
         .collection('sessions')
         .orderBy('startTime', descending: true)
         .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
+        .map(
+          (snapshot) => snapshot.docs
               .map((doc) => Session.fromMap(doc.data(), doc.id))
-              .toList();
-          for (var s in list) {
-            LocalStorageService.saveSession(s);
-          }
-          return list;
-        });
+              .toList(),
+        );
   }
 
-  Stream<List<Post>> getPosts() async* {
-    yield await LocalStorageService.getPosts();
-    yield* _db
+  Stream<List<Post>> getPosts() {
+    return _db
         .collection('posts')
         .orderBy('timeStamp', descending: true)
         .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
+        .map(
+          (snapshot) => snapshot.docs
               .map((doc) => Post.fromMap(doc.data(), doc.id))
-              .toList();
-          for (var p in list) {
-            LocalStorageService.savePost(p);
-          }
-          return list;
-        });
+              .toList(),
+        );
   }
 
-  Stream<List<LibraryItem>> getLibraryItems() async* {
-    yield await LocalStorageService.getLibraryItems();
-    yield* _db.collection('library').snapshots().map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => LibraryItem.fromMap(doc.data(), doc.id))
-          .toList();
-      for (var item in list) {
-        LocalStorageService.saveLibraryItem(item);
-      }
-      return list;
-    });
+  Stream<List<LibraryItem>> getLibraryItems() {
+    return _db
+        .collection('library')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => LibraryItem.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   Stream<List<ChatItem>> getChats() {
@@ -193,23 +181,18 @@ class FirestoreService {
   }
 
   // Chats
-  Stream<List<ChatMessage>> getChatMessages(String chatId) async* {
-    yield await LocalStorageService.getChatMessages(chatId);
-    yield* _db
+  Stream<List<ChatMessage>> getChatMessages(String chatId) {
+    return _db
         .collection('chats')
         .doc(chatId)
         .collection('messages')
         .orderBy('time', descending: true)
         .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
+        .map(
+          (snapshot) => snapshot.docs
               .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
-              .toList();
-          for (var m in list) {
-            LocalStorageService.saveChatMessage(chatId, m);
-          }
-          return list;
-        });
+              .toList(),
+        );
   }
 
   Future<void> addChatMessage(

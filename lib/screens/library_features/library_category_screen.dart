@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/screens/forms/add_library_screen.dart';
+import 'package:brain_link/helpers/file_handler.dart';
 
 class LibraryCategoryScreen extends StatelessWidget {
   final String categoryTitle;
@@ -111,18 +112,12 @@ class LibraryCategoryScreen extends StatelessWidget {
     Color deepPurple,
   ) {
     return GestureDetector(
-      onTap: () async {
+      onTap: () {
         if (item.fileUrl.isNotEmpty) {
-          final uri = Uri.parse(item.fileUrl);
-          try {
-            await launchUrl(uri);
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('لا يمكن فتح أو تنزيل هذا الملف')),
-              );
-            }
-          }
+          FileHandler.openFile(
+            item.fileUrl,
+            defaultFileName: '${item.title}.${item.type.toLowerCase()}',
+          );
         }
       },
       child: Container(

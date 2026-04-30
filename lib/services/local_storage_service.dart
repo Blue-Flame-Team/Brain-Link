@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/model/chat_message.dart';
 
@@ -105,49 +104,5 @@ class LocalStorageService {
         .map((v) => jsonEncode(v))
         .toList();
     await prefs.setStringList(key, updatedList);
-  }
-
-  // --- GETTERS ---
-  static Future<List<Post>> getPosts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> postsStr = prefs.getStringList(_postsKey) ?? [];
-    return postsStr.map((str) {
-      final map = jsonDecode(str);
-      if (map['timeStamp'] is String)
-        map['timeStamp'] = Timestamp.fromDate(DateTime.parse(map['timeStamp']));
-      return Post.fromMap(map, map['id']);
-    }).toList();
-  }
-
-  static Future<List<Session>> getSessions() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> sessionsStr = prefs.getStringList(_sessionsKey) ?? [];
-    return sessionsStr.map((str) {
-      final map = jsonDecode(str);
-      if (map['startTime'] is String)
-        map['startTime'] = Timestamp.fromDate(DateTime.parse(map['startTime']));
-      return Session.fromMap(map, map['id']);
-    }).toList();
-  }
-
-  static Future<List<LibraryItem>> getLibraryItems() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> libStr = prefs.getStringList(_libraryKey) ?? [];
-    return libStr.map((str) {
-      final map = jsonDecode(str);
-      return LibraryItem.fromMap(map, map['id']);
-    }).toList();
-  }
-
-  static Future<List<ChatMessage>> getChatMessages(String chatId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = '$_chatsPrefix$chatId';
-    final List<String> msgStr = prefs.getStringList(key) ?? [];
-    return msgStr.map((str) {
-      final map = jsonDecode(str);
-      if (map['time'] is String)
-        map['time'] = Timestamp.fromDate(DateTime.parse(map['time']));
-      return ChatMessage.fromMap(map, map['id']);
-    }).toList();
   }
 }

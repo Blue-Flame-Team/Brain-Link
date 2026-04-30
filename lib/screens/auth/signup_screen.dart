@@ -83,8 +83,6 @@ class _SignupScreenState extends State<SignupScreen> {
           _showSnackBar("Account Created Successfully!", Colors.green);
           Navigator.pushReplacementNamed(context, AppRoutes.login);
         }
-<<<<<<< HEAD
-=======
       } on FirebaseAuthException catch (e) {
         if (e.code == 'network-request-failed' || e.code == 'unknown') {
           // OFFLINE SIGNUP MOCK
@@ -106,7 +104,6 @@ class _SignupScreenState extends State<SignupScreen> {
         } else {
           _showSnackBar(e.message ?? e.toString(), Colors.red);
         }
->>>>>>> b3e8749e6f07a88be37806a83b16d63320cf1eb4
       } catch (e) {
         _showSnackBar(e.toString(), Colors.red);
       } finally {

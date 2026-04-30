@@ -83,6 +83,30 @@ class _SignupScreenState extends State<SignupScreen> {
           _showSnackBar("Account Created Successfully!", Colors.green);
           Navigator.pushReplacementNamed(context, AppRoutes.login);
         }
+<<<<<<< HEAD
+=======
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'network-request-failed' || e.code == 'unknown') {
+          // OFFLINE SIGNUP MOCK
+          String fakeId = "offline_${DateTime.now().millisecondsSinceEpoch}";
+          UserModel user = UserModel(
+            id: fakeId,
+            fullName: _userController.text.trim(),
+            email: _emailController.text.trim(),
+          );
+
+          await DbHelper.saveUser(user);
+          await SharedPrefHelper.setUser(user.email, "logged_in");
+
+          _showSnackBar(
+            "تم إنشاء حسابك في وضع عدم الاتصال (Offline) مؤقتاً!",
+            Colors.orange,
+          );
+          Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
+        } else {
+          _showSnackBar(e.message ?? e.toString(), Colors.red);
+        }
+>>>>>>> b3e8749e6f07a88be37806a83b16d63320cf1eb4
       } catch (e) {
         _showSnackBar(e.toString(), Colors.red);
       } finally {

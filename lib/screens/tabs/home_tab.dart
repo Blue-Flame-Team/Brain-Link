@@ -4,6 +4,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:brain_link/services/firestore_service.dart';
 import 'package:brain_link/model/app_models.dart';
 import 'package:brain_link/screens/home_features/comments_sheet.dart';
+import 'package:brain_link/screens/home_features/favorites_screen.dart';
+import 'package:brain_link/helpers/db_helper.dart';
 
 String _formatTimeAgo(DateTime time) {
   final diff = DateTime.now().difference(time);
@@ -15,17 +17,76 @@ String _formatTimeAgo(DateTime time) {
   return 'الآن';
 }
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   final VoidCallback? onViewAllSessions;
   final VoidCallback? onProfileTapped;
 
   const HomeTab({super.key, this.onViewAllSessions, this.onProfileTapped});
 
   @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  final firestoreService = FirestoreService();
+  final Map<String, ValueNotifier<bool>> _favoriteNotifiers = {};
+
+  @override
+  void dispose() {
+    for (var notifier in _favoriteNotifiers.values) {
+      notifier.dispose();
+    }
+    super.dispose();
+  }
+
+  ValueNotifier<bool> _getFavoriteNotifier(String postId) {
+    if (!_favoriteNotifiers.containsKey(postId)) {
+      final notifier = ValueNotifier<bool>(false);
+      DbHelper.instance.isFavorite(postId).then((isFav) {
+        notifier.value = isFav;
+      });
+      _favoriteNotifiers[postId] = notifier;
+    }
+    return _favoriteNotifiers[postId]!;
+  }
+
+  void _toggleFavorite(Post post) async {
+    final notifier = _getFavoriteNotifier(post.id);
+    final wasFavorite = notifier.value;
+    if (wasFavorite) {
+      await DbHelper.instance.deleteFavorite(post.id);
+      notifier.value = false;
+    } else {
+      await DbHelper.instance.insertFavorite(post);
+      notifier.value = true;
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null && currentUser.uid != post.authorId) {
+        final currentName = currentUser.displayName ?? 'مستخدم';
+        await firestoreService.addFavoriteNotification(
+          authorId: post.authorId,
+          postId: post.id,
+          favoritedByUserName: currentName,
+        );
+      }
+    }
+  }
+
+  void _openFavoritesScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+    );
+    for (var entry in _favoriteNotifiers.entries) {
+      final isFav = await DbHelper.instance.isFavorite(entry.key);
+      entry.value.value = isFav;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     const deepPurple = Color(0xFF5E35B1);
     const bgColor = Color(0xFFF8F9FD);
-    final firestoreService = FirestoreService();
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -63,7 +124,7 @@ class HomeTab extends StatelessWidget {
                       ),
                     ),
                     InkWell(
-                      onTap: onViewAllSessions,
+                      onTap: widget.onViewAllSessions,
                       child: Text(
                         "عرض الكل",
                         style: TextStyle(
@@ -141,17 +202,22 @@ class HomeTab extends StatelessWidget {
                       child: Text("لا توجد منشورات حتى الآن"),
                     );
                   }
+                  final posts = snapshot.data!;
+                  for (var post in posts) {
+                    _getFavoriteNotifier(post.id);
+                  }
                   return ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: snapshot.data!.length,
+                    itemCount: posts.length,
                     itemBuilder: (context, index) {
+                      final post = posts[index];
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 8,
                         ),
-                        child: _buildPostCard(context, snapshot.data![index]),
+                        child: _buildPostCard(context, post),
                       );
                     },
                   );
@@ -229,9 +295,23 @@ class HomeTab extends StatelessWidget {
                   },
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade100,
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.favorite_border,
+                    color: Colors.black87,
+                  ),
+                  onPressed: _openFavoritesScreen,
+                ),
+              ),
               const SizedBox(width: 12),
               GestureDetector(
-                onTap: onProfileTapped,
+                onTap: widget.onProfileTapped,
                 child: Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
@@ -364,6 +444,7 @@ class HomeTab extends StatelessWidget {
 
   Widget _buildPostCard(BuildContext context, Post post) {
     const deepPurple = Color(0xFF5E35B1);
+    final favoriteNotifier = _getFavoriteNotifier(post.id);
     final currentUserId =
         FirebaseAuth.instance.currentUser?.uid ?? 'anonymous_id';
     final isLiked = post.likedBy.contains(currentUserId);
@@ -531,6 +612,8 @@ class HomeTab extends StatelessWidget {
                 },
               ),
               const SizedBox(width: 24),
+              _buildFavoriteAction(favoriteNotifier, post),
+              const SizedBox(width: 24),
               _buildInteractionAction(
                 Icons.chat_bubble_outline_rounded,
                 post.commentsCount.toString(),
@@ -589,6 +672,35 @@ class HomeTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFavoriteAction(ValueNotifier<bool> isFavNotifier, Post post) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: isFavNotifier,
+      builder: (context, isFav, _) {
+        return InkWell(
+          onTap: () => _toggleFavorite(post),
+          child: Row(
+            children: [
+              Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                color: isFav ? Colors.redAccent : Colors.grey.shade500,
+                size: 22,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isFav ? "مفضلة" : "أضف",
+                style: TextStyle(
+                  color: isFav ? Colors.redAccent : Colors.grey.shade600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

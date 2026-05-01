@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:brain_link/model/app_models.dart';
@@ -129,6 +130,27 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
       'isRead': false,
     });
+  }
+
+  Future<void> addFavoriteNotification({
+    required String authorId,
+    required String postId,
+    required String favoritedByUserName,
+  }) async {
+    if (authorId.isEmpty) return;
+    try {
+      await _db.collection('notifications').add({
+        'userId': authorId,
+        'title': '⭐ مفضلة جديدة',
+        'body': '$favoritedByUserName أضاف بوستك إلى المفضلات',
+        'type': 'favorite',
+        'postId': postId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    } catch (e) {
+      debugPrint("Error adding favorite notification: $e");
+    }
   }
 
   Stream<List<Map<String, dynamic>>> getNotifications(String userId) {

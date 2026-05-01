@@ -1,0 +1,549 @@
+
+--- lib/newupdate/lib/helpers/db_helper.dart ---
++import 'package:brain_link/model/app_models.dart';
++  static final DbHelper instance = DbHelper._internal();
++
++  DbHelper._internal();
++
++  Future<Database> get database async {
++    _db = await _initDb();
++  Future<Database> _initDb() async {
++    final path = join(await getDatabasesPath(), 'brainlink.db');
++    return await openDatabase(
++      path,
++      version: 2,
++      onCreate: (db, version) async {
++        await db.execute(
++          "CREATE TABLE users(id TEXT, fullName TEXT, email TEXT)",
++        );
++        await db.execute('''
++          CREATE TABLE favorites (
++            id TEXT PRIMARY KEY,
++            authorId TEXT,
++            authorName TEXT,
++            authorRole TEXT,
++            timeStamp INTEGER,
++            content TEXT,
++            hasCodeSnippet INTEGER,
++            snippetCode TEXT,
++            likesCount INTEGER,
++            commentsCount INTEGER,
++            likedBy TEXT
++          )
++        ''');
++      },
++      onUpgrade: (db, oldVersion, newVersion) async {
++        if (oldVersion < 2) {
++          await db.execute('''
++            CREATE TABLE IF NOT EXISTS favorites (
++              id TEXT PRIMARY KEY,
++              authorId TEXT,
++              authorName TEXT,
++              authorRole TEXT,
++              timeStamp INTEGER,
++              content TEXT,
++              hasCodeSnippet INTEGER,
++              snippetCode TEXT,
++              likesCount INTEGER,
++              commentsCount INTEGER,
++              likedBy TEXT
++            )
++          ''');
++        }
++      },
++    );
++  }
++
++  Future<void> saveUser(UserModel user) async {
++    final db = await database;
++    await db.insert(
++      'users',
++      user.toMap(),
++      conflictAlgorithm: ConflictAlgorithm.replace,
++    );
++  }
++
++  Future<void> insertFavorite(Post post) async {
++    final db = await database;
++    await db.insert(
++      'favorites',
++      {
++        'id': post.id,
++        'authorId': post.authorId,
++        'authorName': post.authorName,
++        'authorRole': post.authorRole,
++        'timeStamp': post.timeStamp.millisecondsSinceEpoch,
++        'content': post.content,
++        'hasCodeSnippet': post.hasCodeSnippet ? 1 : 0,
++        'snippetCode': post.snippetCode,
++        'likesCount': post.likesCount,
++        'commentsCount': post.commentsCount,
++        'likedBy': post.likedBy.join(','),
++      },
++      conflictAlgorithm: ConflictAlgorithm.replace,
++    );
++  }
++
++  Future<void> deleteFavorite(String postId) async {
++    final db = await database;
++    await db.delete('favorites', where: 'id = ?', whereArgs: [postId]);
++  }
++
++  Future<bool> isFavorite(String postId) async {
++    final db = await database;
++    final result = await db.query(
++      'favorites',
++      where: 'id = ?',
++      whereArgs: [postId],
++    );
++    return result.isNotEmpty;
++  }
++
++  Future<List<Post>> getFavorites() async {
++    final rows = await db.query('favorites');
++    return rows.map((row) {
++      final likedByRaw = row['likedBy'] as String;
++      return Post(
++        id: row['id'] as String,
++        authorId: row['authorId'] as String,
++        authorName: row['authorName'] as String,
++        authorRole: row['authorRole'] as String,
++        timeStamp: DateTime.fromMillisecondsSinceEpoch(
++          row['timeStamp'] as int,
++        ),
++        content: row['content'] as String,
++        hasCodeSnippet: (row['hasCodeSnippet'] as int) == 1,
++        snippetCode: row['snippetCode'] as String,
++        likesCount: row['likesCount'] as int,
++        commentsCount: row['commentsCount'] as int,
++        likedBy: likedByRaw.isEmpty ? [] : likedByRaw.split(','),
++      );
++    }).toList();
+
+--- lib/helpers/file_handler.dart ---
+
+--- lib/newupdate/lib/helpers/shared_pref_helper.dart ---
++
++  // مفاتيح المفضلات الجديدة
++  static const String _favoritesKey = 'favorites_ids';
++
++
++  // ===================== دوال المفضلات الجديدة =====================
++
++  static Future<void> saveFavoritesIds(List<String> ids) async {
++    final prefs = await SharedPreferences.getInstance();
++    await prefs.setStringList(_favoritesKey, ids);
++  }
++
++  static Future<List<String>> getFavoritesIds() async {
++    final prefs = await SharedPreferences.getInstance();
++    return prefs.getStringList(_favoritesKey) ?? [];
++  }
++
++  static Future<void> addFavoriteId(String id) async {
++    List<String> ids = await getFavoritesIds();
++    if (!ids.contains(id)) {
++      ids.add(id);
++      await saveFavoritesIds(ids);
++    }
++  }
++
++  static Future<void> removeFavoriteId(String id) async {
++    List<String> ids = await getFavoritesIds();
++    ids.remove(id);
++    await saveFavoritesIds(ids);
++  }
++
++  static Future<bool> isFavorite(String id) async {
++    List<String> ids = await getFavoritesIds();
++    return ids.contains(id);
++  }
++}
+
+--- lib/newupdate/lib/main.dart ---
++class MyApp extends StatelessWidget {
++      theme: ThemeData.light(), // الوضع الفاتح فقط (أو يمكنك استخدام dark)
++}
+
+--- lib/newupdate/lib/navigation/router_generator.dart ---
++
+
+--- lib/newupdate/lib/helpers/db_helper.dart ---
+
+--- lib/newupdate/lib/helpers/shared_pref_helper.dart ---
+
+--- lib/newupdate/lib/main.dart ---
+
+--- lib/newupdate/lib/model/app_models.dart ---
+
+--- lib/newupdate/lib/model/chat_message.dart ---
+
+--- lib/newupdate/lib/model/user_model.dart ---
+
+--- lib/newupdate/lib/navigation/AppRoutes.dart ---
+
+--- lib/newupdate/lib/navigation/router_generator.dart ---
+
+--- lib/newupdate/lib/screens/auth/Role_screen.dart ---
+
+--- lib/newupdate/lib/screens/auth/login_screen.dart ---
+
+--- lib/newupdate/lib/screens/auth/signup_screen.dart ---
+
+--- lib/newupdate/lib/screens/chat/chat_screen.dart ---
+
+--- lib/newupdate/lib/screens/chat/users_list_screen.dart ---
+
+--- lib/newupdate/lib/screens/core/main_layout.dart ---
+
+--- lib/newupdate/lib/screens/core/splash_screen.dart ---
+
+--- lib/newupdate/lib/screens/features/notifications_screen.dart ---
+
+--- lib/newupdate/lib/screens/forms/add_library_screen.dart ---
+
+--- lib/newupdate/lib/screens/forms/add_post_screen.dart ---
+
+--- lib/newupdate/lib/screens/forms/add_session_screen.dart ---
+
+--- lib/newupdate/lib/screens/home_features/comments_sheet.dart ---
+
+--- lib/newupdate/lib/screens/home_features/notifications_screen.dart ---
+
+--- lib/newupdate/lib/screens/library_features/library_category_screen.dart ---
+
+--- lib/newupdate/lib/screens/tabs/chat_tab.dart ---
+
+--- lib/newupdate/lib/screens/tabs/home_tab.dart ---
+
+--- lib/newupdate/lib/screens/tabs/library_tab.dart ---
+
+--- lib/newupdate/lib/screens/tabs/profile_tab.dart ---
+
+--- lib/newupdate/lib/screens/tabs/sessions_tab.dart ---
+
+--- lib/newupdate/lib/services/auth_service.dart ---
+
+--- lib/newupdate/lib/services/firestore_service.dart ---
+
+--- lib/newupdate/lib/screens/auth/signup_screen.dart ---
+
+--- lib/newupdate/lib/screens/chat/chat_screen.dart ---
++      final ref = FirebaseStorage.instance.ref().child(
++        'library_files/chat_attachment_$safeFileName',
++      );
++      UploadTask uploadTask;
++        uploadTask = ref.putData(file.bytes!);
++        uploadTask = ref.putFile(File(file.path!));
++      final snapshot = await uploadTask;
++      final fileUrl = await snapshot.ref.getDownloadURL();
++                                onTap: () => launchUrl(Uri.parse(msg.fileUrl!)),
+
+--- lib/newupdate/lib/screens/forms/add_library_screen.dart ---
++      final ref = FirebaseStorage.instance.ref().child(
++        'library_files/$safeFileName',
++      );
++      UploadTask uploadTask;
++      if (kIsWeb) {
++        uploadTask = ref.putData(_fileBytes!);
++        uploadTask = ref.putFile(_selectedFile!);
++      final snapshot = await uploadTask;
++      fileUrl = await snapshot.ref.getDownloadURL();
+
+--- lib/newupdate/lib/screens/library_features/library_category_screen.dart ---
++      onTap: () async {
++          final uri = Uri.parse(item.fileUrl);
++          try {
++            await launchUrl(uri);
++          } catch (e) {
++            if (context.mounted) {
++              ScaffoldMessenger.of(context).showSnackBar(
++                const SnackBar(content: Text('لا يمكن فتح أو تنزيل هذا الملف')),
++              );
++            }
++          }
+
+--- lib/newupdate/lib/screens/tabs/home_tab.dart ---
++import 'package:firebase_auth/firebase_auth.dart';
++import 'package:brain_link/helpers/db_helper.dart';
++import 'package:brain_link/screens/home_features/favorites_screen.dart';
++class HomeTab extends StatefulWidget {
++  @override
++  State<HomeTab> createState() => _HomeTabState();
++}
++
++class _HomeTabState extends State<HomeTab> {
++  final firestoreService = FirestoreService();
++  final Map<String, ValueNotifier<bool>> _favoriteNotifiers = {};
++
++  @override
++  void dispose() {
++    for (var notifier in _favoriteNotifiers.values) {
++      notifier.dispose();
++    }
++    super.dispose();
++  }
++
++  ValueNotifier<bool> _getFavoriteNotifier(String postId) {
++    if (!_favoriteNotifiers.containsKey(postId)) {
++      final notifier = ValueNotifier<bool>(false);
++      DbHelper.instance.isFavorite(postId).then((isFav) {
++        notifier.value = isFav;
++      });
++      _favoriteNotifiers[postId] = notifier;
++    }
++    return _favoriteNotifiers[postId]!;
++  }
++
++  void _toggleFavorite(Post post) async {
++    final notifier = _getFavoriteNotifier(post.id);
++    final wasFavorite = notifier.value;
++    if (wasFavorite) {
++      await DbHelper.instance.deleteFavorite(post.id);
++      notifier.value = false;
++    } else {
++      await DbHelper.instance.insertFavorite(post);
++      notifier.value = true;
++
++      final currentUser = FirebaseAuth.instance.currentUser;
++      if (currentUser != null && currentUser.uid != post.authorId) {
++        final currentName = currentUser.displayName ?? 'مستخدم';
++        await firestoreService.addFavoriteNotification(
++          authorId: post.authorId,
++          postId: post.id,
++          favoritedByUserName: currentName,
++        );
++      }
++    }
++  }
++
++  void _openFavoritesScreen() async {
++    await Navigator.push(
++      context,
++      MaterialPageRoute(builder: (_) => const FavoritesScreen()),
++    );
++    for (var entry in _favoriteNotifiers.entries) {
++      final isFav = await DbHelper.instance.isFavorite(entry.key);
++      entry.value.value = isFav;
++    }
++  }
++
++              _buildCustomHeader(context, deepPurple),
++                      onTap: widget.onViewAllSessions,
++                          (s) => s.isLive || s.startTime.isAfter(DateTime.now()),
++                  final posts = snapshot.data!;
++                  for (var post in posts) {
++                    _getFavoriteNotifier(post.id);
++                  }
++                    itemCount: posts.length,
++                      final post = posts[index];
++                        child: _buildPostCard(context, post),
++  Widget _buildCustomHeader(BuildContext context, Color deepPurple) {
++                child: Icon(
++                  color: Color(0xFF5E35B1),
++              const SizedBox(width: 8),
++              Container(
++                decoration: BoxDecoration(
++                  shape: BoxShape.circle,
++                  color: Colors.grey.shade100,
++                ),
++                child: IconButton(
++                  icon: const Icon(
++                    Icons.favorite_border,
++                    color: Colors.black87,
++                  ),
++                  onPressed: _openFavoritesScreen,
++                ),
++              ),
++                onTap: widget.onProfileTapped,
++                  child: CircleAvatar(
++                    child: const Icon(Icons.person, color: Colors.white, size: 22),
++    final favoriteNotifier = _getFavoriteNotifier(post.id);
++              _buildFavoriteAction(favoriteNotifier, post),
++              _buildCommentAction(post, deepPurple),
++              _buildShareAction(post),
++  Widget _buildFavoriteAction(ValueNotifier<bool> isFavNotifier, Post post) {
++    return ValueListenableBuilder<bool>(
++      valueListenable: isFavNotifier,
++      builder: (context, isFav, _) {
++        return InkWell(
++          onTap: () => _toggleFavorite(post),
++          child: Row(
++            children: [
++              Icon(
++                isFav ? Icons.favorite : Icons.favorite_border,
++                color: isFav ? Colors.redAccent : Colors.grey.shade500,
++                size: 22,
++              ),
++              const SizedBox(width: 6),
++              Text(
++                isFav ? "مفضلة" : "أضف",
++                style: TextStyle(
++                  color: isFav ? Colors.redAccent : Colors.grey.shade600,
++                  fontSize: 14,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ],
++          ),
++        );
++      },
++    );
++  }
++
++  Widget _buildCommentAction(Post post, Color deepPurple) {
++      onTap: () {
++        showModalBottomSheet(
++          context: context,
++          isScrollControlled: true,
++          backgroundColor: Colors.transparent,
++          builder: (context) => CommentsSheet(post: post),
++        );
++      },
++            Icons.chat_bubble_outline_rounded,
++            color: Colors.grey.shade500,
++            post.commentsCount.toString(),
++              color: Colors.grey.shade600,
++
++  Widget _buildShareAction(Post post) {
++    return InkWell(
++      onTap: () {
++        Share.share("مشاركة من تطبيق BrainLink:\n${post.content}");
++      },
++      child: Icon(
++        Icons.share_rounded,
++        color: Colors.grey[400],
++        size: 22,
++      ),
++    );
++  }
++}
+
+--- lib/newupdate/lib/screens/tabs/profile_tab.dart ---
++                        width: 120,
++                        height: 120,
++                        child: CircularProgressIndicator(strokeWidth: 3),
++                      )
++                        width: 120,
++                        height: 120,
++                        decoration: BoxDecoration(
++                          color: deepPurple.withValues(alpha: 0.1),
++                          shape: BoxShape.circle,
++                          border: Border.all(color: deepPurple, width: 2),
++                        ),
++                        clipBehavior: Clip.antiAlias,
++                        child: photoUrl != null && photoUrl.isNotEmpty
++                            ? Image.network(photoUrl, fit: BoxFit.cover)
++                            : Center(
++                          child: Text(
++                            userName.isNotEmpty
++                                ? userName[0].toUpperCase()
++                                : '؟',
++                            style: const TextStyle(
++                              color: deepPurple,
++                              fontSize: 42,
++                              fontWeight: FontWeight.bold,
++                          ),
++                        ),
++                      ),
++}
+
+--- lib/newupdate/lib/services/firestore_service.dart ---
++import 'package:flutter/foundation.dart';
++          .map((doc) => Session.fromMap(doc.data(), doc.id))
++          .toList(),
++    );
++          .map((doc) => Post.fromMap(doc.data(), doc.id))
++          .toList(),
++    );
++          .map((doc) => LibraryItem.fromMap(doc.data(), doc.id))
++          .toList(),
++    );
++      final chats = snapshot.docs.map((doc) {
++        final data = doc.data();
++
++        final pNames = data['participantNames'] as Map<String, dynamic>?;
++        String displayName = data['participantName'] ?? 'مستخدم';
++        String otherUserId = '';
++
++        if (pNames != null) {
++          final otherNames = pNames.keys.where((k) => k != currentUserId);
++          if (otherNames.isNotEmpty) {
++            otherUserId = otherNames.first;
++            displayName = pNames[otherUserId] ?? displayName;
++          }
++        }
++
++        var item = ChatItem.fromMap(data, doc.id, otherUserId: otherUserId);
++        return item;
++      }).toList();
++
++      chats.sort((a, b) => b.time.compareTo(a.time));
++      return chats;
++    });
++      String postId,
++      List<String>? currentLikes,
++      String userId,
++      ) async {
++    final likes = currentLikes ?? [];
++    final isLiked = likes.contains(userId);
++
++    if (isLiked) {
++    String? postId,
++      'postId': postId,
++      final list = s.docs.map((d) => {'id': d.id, ...d.data()}).toList();
++      list.sort((a, b) {
++        final aTime =
++            (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
++        final bTime =
++            (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
++        return bTime.compareTo(aTime);
++      });
++      return list;
++    });
++          .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
++          .toList(),
++    );
++          .map((doc) => ChatMessage.fromMap(doc.data(), doc.id))
++          .toList(),
++    );
++      String chatId,
++      ChatMessage message,
++      String text, {
++        bool hasAttachment = false,
++      }) async {
++      String chatId,
++      String userId,
++      bool isTyping,
++      ) async {
++      String otherUserId,
++      String otherUserName,
++      ) async {
++                pNames.values.firstWhere(
++                      (n) => n != currentUserName,
++                  orElse: () => displayName,
++                );
++
++  Future<void> addFavoriteNotification({
++    required String authorId,
++    required String postId,
++    required String favoritedByUserName,
++  }) async {
++    if (authorId.isEmpty) return;
++    try {
++      await _db.collection('notifications').add({
++        'userId': authorId,
++        'title': '⭐ مفضلة جديدة',
++        'body': '$favoritedByUserName أضاف بوستك إلى المفضلات',
++        'type': 'favorite',
++        'postId': postId,
++        'createdAt': FieldValue.serverTimestamp(),
++        'isRead': false,
++      });
++    } catch (e) {
++      debugPrint("Error adding favorite notification: $e");
++    }
++  }
++}
+
+--- lib/services/local_storage_service.dart ---

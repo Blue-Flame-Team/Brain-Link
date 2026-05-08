@@ -81,7 +81,7 @@ class _SignupScreenState extends State<SignupScreen> {
           await SharedPrefHelper.setUser(user.email, "logged_in");
 
           _showSnackBar("Account Created Successfully!", Colors.green);
-          Navigator.pushReplacementNamed(context, AppRoutes.login);
+          Navigator.pushReplacementNamed(context, AppRoutes.roleScreen);
         }
       } on FirebaseAuthException catch (e) {
         if (e.code == 'network-request-failed' || e.code == 'unknown') {
@@ -100,7 +100,7 @@ class _SignupScreenState extends State<SignupScreen> {
             "تم إنشاء حسابك في وضع عدم الاتصال (Offline) مؤقتاً!",
             Colors.orange,
           );
-          Navigator.pushReplacementNamed(context, AppRoutes.mainLayout);
+          Navigator.pushReplacementNamed(context, AppRoutes.roleScreen);
         } else {
           _showSnackBar(e.message ?? e.toString(), Colors.red);
         }

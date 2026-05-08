@@ -89,7 +89,16 @@ class _ProfileTabState extends State<ProfileTab> {
             : <String, dynamic>{};
 
         final userName = userData['name'] ?? user.displayName ?? "مستخدم جديد";
-        final userRole = userData['role'] == 'Teacher' ? 'معلم / خبير' : 'طالب';
+
+        final String roleValue = userData['role'] ?? 'student';
+        String userRole = 'طالب';
+        if (roleValue == 'junior') {
+          userRole = 'مطور مبتدئ';
+        } else if (roleValue == 'senior') {
+          userRole = 'مطور محترف';
+        } else if (roleValue == 'Teacher') {
+          userRole = 'معلم / خبير';
+        }
         final userLevel = userData['level'] ?? 'عام';
         final userRating = userData['rating'] ?? 0;
         final photoUrl = userData['photoUrl'] as String?;
